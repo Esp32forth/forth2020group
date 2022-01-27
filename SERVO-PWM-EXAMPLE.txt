@@ -1,0 +1,26 @@
+\ example how to use RC servos without libraries, by PeterForth
+
+FORTH DEFINITIONS also LEDC   ( vocabulary ) 
+ 
+DECIMAL
+  
+  15 constant PWMR     2 constant chRIGHT
+  
+: init-pwm    PWMR chRIGHT      ledcAttachPin 
+	           chRIGHT 40000 10  ledcSetup ;
+ 
+:  servo ( speed -- )  chRIGHT swap ledcWrite ; 
+     
+init-pwm
+
+( here some test examples ) 
+
+: test 180 10 do i servo 200 ms 10 +loop ;
+
+: test2 180 10 do 180 i - servo 200 ms 10 +loop ;
+
+: test3 test2 test ;
+
+: test4 4 0 do test3  loop ;
+
+

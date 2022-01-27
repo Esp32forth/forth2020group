@@ -1,0 +1,247 @@
+\ ESP32forth - Rotary Encoder KY-040 driver. 
+\ by Peter Forth and Christian Hinse
+\ ESP32forth version: ESP32forth-7.0.5.4.zip
+ 
+\ *** Description *** 
+\ This a modified and commented version of the original code posted by Peter Forth. 
+\ I added comments to better understand the code, included code to use 
+\ pin interrupts and use all rotary encoder detents. 
+\ - This rotary encoder code will increment the value of varA 
+\ when rotating clockwise and decrement it when going counterclockwise. 
+\ - It will also increment varSW when the push-button switch is depressed. 
+\ Tested without RC filter resistors and capacitors and works properly. 
+
+\ ==> 2021-08-01 
+\ Modified to add push button switch interrupts with timer debounce. 
+\ 1. Configure GPIO 05 as input with pullup for the push-button switch. 
+\ 2. Generate interrupts on pin state change. 
+\ 3. Disable interrupts on pin on any interrupt 
+\    and starts a timer to read after a delay. 
+\ 4. Read and re-enable interrupts after a hardware timer 
+\    delay of 10 ms to provide switch debounce. 
+
+\ ==> 2021-07-30  
+\ Modified to use pin interrupts and timer.
+\ 1. Generate interrupts on pin state change. 
+\ 2. Disable interrupts on pin on any interrupt 
+\    and starts a timer to read encoder after a delay.
+\ 3. Read and re-enable interrupts after a hardware timer 
+\    delay of 2 ms to provide switch debounce. 
+
+\ ==> 2021-07-20 
+\ 1. Counts on all 30 detents instead of of 15 in the original Peter Forth code. 
+\ 2. The timer 0 delay was also changed from 10000 to 2000 usec or 10 ms to 2 ms.
+\   to prevent droping counts when turning fast. 
+\ 3. The pin pulldown code was removed. It works fine 
+\   without it because the KY-040 has its own pullup resistors. 
+\ 4. Code was factored into smaller words 
+\   for easy testing and readability. 
+\ 5. The original Peter Forth code was modified to increment 
+\   on clockwise rotation and decrement on counterclockwise rotation. 
+\ 6. Comments were added to explain the code.
+
+\ *** Define all VALUEs used in this program. 
+0 value varA    \ This the ariable being incremented or decremented
+                \ by the rotation of the rotary encoder. 
+0 value varSW   \ This the ariable being incremented or decremented
+                \ by the depression of the push-button switch SW. 
+0 value oldA    \ Contains the state of the last pinA read. 
+0 value pinA    \ Contains the state of the present pinA read. 
+0 value pinB    \ Contains the state of the present pinB read. 
+0 value pinSW   \ Contains the state of the present pinSW read.
+0 value oldSW   \ Contains the state of the last pinSW read. 
+15 value pinA#  \ The # of the GPIO pin used for encoder pinA. 
+4 value pinB#   \ The # of the GPIO pin used for encoder pinB. 
+5 value pinSW#  \ The # of the GPIO pin used for the push-button switch pinSW. 
+
+\  *** Define all CONSTANTs used in this program.
+-1 constant TRUE \ Definitions of a logic TRUE and FALSE.
+0 constant FALSE 
+
+\ *** Set encoder pinA# and pinB# in iput mode. 
+pinA# input pinmode 
+pinB# input pinmode 
+
+\ *** Set the push-button pinSW# in iput mode with internal pullup. 
+interrupts      \ Required for recognition of gpio_pullup_en. 
+pinSW# dup input pinmode gpio_pullup_en drop ;
+
+\ *** Define words to read the pin state into values pinA, pinB and pinSW. 
+: rd-pinA pinA# digitalRead to pinA ; 
+: rd-pinB pinB# digitalread to pinB ; 
+: rd-pinSW pinSW# digitalread to pinSW ; 
+
+\ *** Set oldA to the state of the actual encoder detent. 
+\ This prevent an initial unintended change of var on startup. 
+: init-oldA pinA# digitalread to oldA ;
+init-oldA
+
+\ *** Define a word to determine if pinA was not changed. 
+: oldA=pinA? oldA pinA = if TRUE else FALSE then ; 
+
+\ *** Define a word to determine if pinSW was not changed. 
+: oldSW=pinSW? oldSW pinSW = if TRUE else FALSE then ; 
+
+\ *** Define a word to determine if pinA is falling. 
+: pinA-fall? pinA oldA - -1 = ; \ Only equals -1 if pinA is 0 and oldA is 1. 
+
+\ *** Define a word to determine if pinSW is falling. 
+: pinSW-fall? pinSW oldSW - -1 = ; \ Only equals -1 if pinSW is 0 and oldSW is 1. 
+
+\ Define words to enable or disable interrupts on pinA. 
+
+interrupts      \ Required for gpio_intr_dis and ena reconition. 
+: dis-intA pinA# gpio_intr_disable drop ;
+: ena-intA pinA# gpio_intr_enable drop ;
+
+\ Define words to enable or disable interrupts on pinSW. 
+
+interrupts      \ Required for gpio_intr_dis and ena reconition. 
+: dis-intSW pinSW# gpio_intr_disable drop ;
+: ena-intSW pinSW# gpio_intr_enable drop ;
+
+\ *** Define the action word when pinA changes state. 
+\     This word is used by timer 0 interrupt ISR. 
+: pinA-do? 
+      rd-pinA   rd-pinB 
+      oldA=pinA? if      \  Do nothing if no change. 
+                 else pinA-fall? if pinB     if    1 +to varA \ Falling clockwise. 
+                                             else -1 +to varA \ Falling counterclockwise.
+                                             then 
+                                 else pinB   if   -1 +to varA \ Rising counterclockwise. 
+                                             else  1 +to varA \ Rising clockwise.
+                                             then 
+                                 then 
+                      pinA to oldA \ Update oldA. 
+                 then 
+      ena-intA   \ Reactivate interrupts disabled by pin interrupts ISR.
+; 
+
+\ *** Define the action word when pinSW changes state. 
+\     Depression and release of pinSW push-button should increment varSw by 1.
+\     This word is used by timer 1 interrupt ISR. 
+: pinSW-do? 
+      rd-pinSW 
+      oldSW=pinSW? if   \  Do nothing if no change. 
+                   else pinSW-fall? if    1 +to varSW \ Increment if falling. 
+                                  else              \ No action if rising. 
+                                  then 
+                                  pinSW to oldSW \ Update oldSW. 
+                   then 
+      ena-intSW         \ Reactivate interrupts disabled
+                        \ by pin interrupt ISR.
+                                                    ; 
+\ *** Define the timer 0 ISR word to be executed 
+\     by the t0 interrupt after a 2 ms delay 
+\     to filter out switch bounce. 
+: t0-readvarA     \ Used as t0 ISR.
+        pinA-do? \ Executes action required on pinA state change. 
+; 
+
+\ *** Define the timer 1 ISR word to be executed 
+\     by the t1 interrupt after a 10 ms delay 
+\     to filter out switch bounce. 
+: t1-readvarSW     \ Used as t0 ISR.
+        pinSW-do? \ Executes action required on pinSW state change. 
+; 
+
+\ ***  Configure timer 0 to read pinA and reactivate 
+\      interrupts after 2 ms. 
+timers          \ Required for interval and rerun recognition. 
+' t0-readvarA  2000 0 interval 
+\ This delay value may have to be adjusted depending on the type 
+\ of switch based encoder used. 
+
+\ ***  Configure timer 1 to read pinSW and reactivate 
+\      interrupts after 10 ms. 
+timers          \ Required for interval and rerun recognition. 
+' t1-readvarSW  10000 1 interval 
+\ This delay value may have to be adjusted depending on the type 
+\ of push-button switch used. 
+
+\ *** Define the pinA interrupts ISR word. 
+: intA-do
+        dis-intA \ Disable interrupts on pinA to prevent multiple spurrious interrupts 
+                \ due to switch bounce. 
+        0 rerun \ Start t0 delayed rotary encoder action word execution 
+                \ and reactivation of pinA interrupts. 
+;
+\ *** Activate pin change interrupts on pinA.
+interrupts      \ Required for pinchange recognition. 
+' intA-do pinA# pinchange 
+
+\ *** Define the pinSW interrupt ISR word. 
+timers            \ Required for interval and rerun recognition. 
+: intSW-do
+        dis-intSW \ Disable interrupts on pinA to prevent multiple spurrious interrupts 
+                  \ due to switch bounce. 
+        1 rerun   \ Start t1 delayed push-button SW action word execution 
+                  \ and reactivation of pinSW interrupts. 
+;
+\ *** Activate pin change interrupts on pinSW.
+interrupts      \ Required for pinchange recognition. 
+' intSW-do pinSW# pinchange 
+
+\ *** Define a test word to show the value of varA. 
+:  .varA cr varA . ; 
+
+\ *** Define a test word to show the value of varSW. 
+:  .varSW cr varSW . ; 
+
+\ *** Testing procedure for rotary encoder. *** 
+\ 1. Type .varA to show the initial value of valA.
+\ 2. Rotate the encoder knob clockwise for a full turn. 
+\ 3. Type .valA. The value shown should be the number of detents 
+\    on your encoder. Mine had 30 detents.
+\ 4. Rotate the encoder knob to counterclockwise for a full turn. 
+\ 5. Type .valA. The value shown should decrent from your number of detents 
+\    back to 0. 
+\ ** My test results on the screen ** 
+\ --> .varA 
+\ 0  ok 
+\ --> .varA 
+\ 30  ok 
+\ --> .varA 
+\ 0  ok 
+\ --> 
+
+\ *** Testing procedure for push-button SW. *** 
+\ 1. Type .varSW to show the initial value of valSW.
+\ 2. Depress and release the push-button SW. 
+\ 3. Type .valSW. The value of valSW should have been incremented by 1. 
+\ 4. Repeat 1-3 a few times to confirm repeated increments by 1 only.
+\ ** My test results on the screen ** 
+\ --> .varsw 
+\ 0  ok 
+\ --> .varsw 
+\ 1  ok 
+\ --> .varsw 
+\ 2  ok 
+\ --> .varsw 
+\ 3  ok 
+\ --> 
+
+\ *** Comments *** 
+\ 1. With the help of Peter Forth I finally succeeded in getting 
+\    a cheap switch based rotary encoder working properly with pin interrupts 
+\    even with the switch bounce occuring on these KY-040 encoders. 
+\ 2. This approach requires no RC filter and generates a single interrupt 
+\    for each detent change.
+\ 3. With the 2000us timer setting, rotating the knob very fast 
+\    could still drop some inc/dec . A lower settings could 
+\    reduce this probability further but may not be sufficient 
+\    to debounce long bounce periods at slow rotation. 
+\ 4. Knob selection affects switch bounce: 
+\     - a heavy knob bounces more, 
+\     - a larger knob bounces more because it goes over the detent 
+\       transition more slowly and generates longer bounce periods, 
+\     - a larger knob reduces the speed of rotation and may prevent dropping 
+\       counts due to fast rotation. 
+\ 5. My best results were obtained from a knob of 1.5cm of diameter. 
+\ 6. The timer delay is a compromise between dropping counts or insufficient debounce. 
+\ 7. The debouce approach with a timer is also usable for the push-button switch. 
+\ 8. The word factoring could be improved for performance. 
+\    My goal was understanding more than performance. 
+\ 9. This experiment allowed me to better understand switch bounce, timers
+\    and debounce procedures. Now that I have a switch working with interrupts, 
+\    I can move on to something else. 

@@ -1,0 +1,19 @@
+// LM393 Speedsensor for the Forthmobile project
+// 25June 2021  by PeterForth
+
+INTERRUPTS 
+
+0 VALUE leftwheel  0 value rightwheel
+
+14 input pinMode   12 input pinMode
+
+:  INT12   1 +TO leftwheel    ;
+:  INT14   1 +TO rightwheel   ;
+
+: pinPosedge ( xt pin -- )
+               dup  GPIO_INTR_POSEDGE gpio_set_intr_type throw 
+               swap 0 gpio_isr_handler_add throw ;
+					  
+					  
+'  INT12 12 pinPosedge
+'  INT14 14 pinPosedge

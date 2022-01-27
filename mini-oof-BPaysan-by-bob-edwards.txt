@@ -1,0 +1,114 @@
+MINI-OOF by Bernd Paysan 1998 adapted by Bob Edwards 24th July 2021
+
+
+DEFINED? *MINI-OOF* [IF] forget *MINI-OOF* [THEN]
+: *MINI-OOF* ;
+
+
+\ Words missing from the esp32forth system
+
+
+: NOOP ;
+: /STRING
+DUP >R -
+SWAP R> +
+SWAP
+;
+
+
+\ The object oriented extensions
+
+
+: METHOD
+CREATE
+OVER , SWAP
+CELL+ SWAP
+DOES>
+@ OVER @ +
+@ EXECUTE
+;
+: VAR
+CREATE
+OVER , +
+DOES>
+@ +
+;
+: CLASS
+DUP
+2@ SWAP ;
+: END-CLASS
+CREATE
+HERE >R
+, DUP ,
+2 CELLS ?DO
+['] NOOP ,
+1 CELLS +LOOP
+CELL+ DUP CELL+ R>
+ROT
+@
+2 CELLS
+/STRING
+CMOVE
+;
+: DEFINES
+' >BODY @ + !
+;
+: NEW
+	HERE OVER @ ALLOT
+SWAP OVER !
+;
+: ::
+' >BODY @ + @ ,
+;
+CREATE OBJECT
+1 cells , 2 cells ,
+
+
+
+
+\ Example MINI-OOF code
+
+
+object class
+cell var teeth#
+cell var height
+method speak
+method greet
+method walk
+method add.
+end-class pet
+:noname ." pet speaks" drop ; pet defines speak
+:noname ." pet greets" drop ; pet defines greet
+:noname ." pet walks" drop ; pet defines walk
+:noname drop + ." n1 + n2 = " . ; pet defines add.
+pet class
+method happy
+end-class cat
+:noname ." cat purrs" drop ; cat defines happy
+:noname ." cat says meow" drop ; cat defines speak
+:noname ." cat raises tail" drop ; cat defines greet
+pet class
+end-class dog
+:noname ." dog says wuff" drop ; dog defines speak
+:noname ." dog wags tail" drop ; dog defines greet
+cat new constant tibby
+dog new constant fido
+20 tibby teeth# !
+30 fido teeth# !
+50 tibby height !
+75 fido height !
+tibby teeth# @ . cr
+fido height @ . cr
+tibby greet
+fido speak
+tibby speak
+34 56 fido add.
+tibby walk
+
+
+\ The above packs quite a lot of punch for very little code space
+\ and may make all the difference to an otherwise awkward-to-code job
+\ Bernd Paysans Mini-OOF pages
+\ An extension to Mini-OOF by Gerry Jackson
+
+

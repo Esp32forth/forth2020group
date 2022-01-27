@@ -1,0 +1,47 @@
+
+( KNIGHT RIDER -- SHORTER VERSION  )
+
+DECIMAL
+                      
+: init   15 OUTPUT PINMODE     4 OUTPUT PINMODE  
+          5 OUTPUT PINMODE    18 OUTPUT PINMODE  
+         19 OUTPUT PINMODE    23 OUTPUT PINMODE  
+         12 OUTPUT PINMODE    13 OUTPUT PINMODE  
+         14 OUTPUT PINMODE    15 OUTPUT PINMODE  
+          4 OUTPUT PINMODE     5 OUTPUT PINMODE  ;
+ 
+low  VALUE WOW
+             
+              
+: all  ( n --)     to wow   WOW 15 pin   WOW   4 pin  
+                            WOW  5 pin   WOW  18 pin   
+                            WOW 19 pin   WOW  23 pin 
+                            WOW 12 pin   WOW  13 pin  
+                            WOW 14 pin   WOW   2 pin  ;
+             
+             
+CREATE ARRAY           
+    15 ,      2 ,       4 ,      5 ,         
+    18 ,     19 ,      23 ,     12 ,          
+    14 ,     13 ,      14 ,      
+    12 ,     23 ,      19 ,     18 ,
+     5 ,      4 ,       2 ,     15 ,
+              
+             
+0 VALUE P#  ( Pin number )
+
+: PINN   P# PIN  :             
+             
+50 VALUE DEL4    ( delay to blink 1 led ) 
+   
+: LED# ( n--)  CELLS ARRAY + @ TO P# ;
+          
+: BLINK ( n--) LED#  LOW PINN DEL4 MS HIGH PINN  ;
+     
+    
+: KNIGHT-RIDER  HIGH ALL 20 0 DO  I BLINK   LOOP ; 
+    
+         
+: RUN ( --)  init  10 0 DO KNIGHT-RIDER LOOP ; 
+
+ 

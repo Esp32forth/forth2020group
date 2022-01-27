@@ -1,0 +1,80 @@
+\ this library was written by Tony Leff 
+\ forth2020 group 16.March2021
+
+ledc
+
+: initpins 0 23 18 12 13 22 27 26 25 33 32 19 21 begin dup output pinmode 0 = until
+  0 1000 5000 ledcsetup ledcdetachpin 23 0 ledcattachpin ; ( define output pins )
+
+: lcdbl 0 swap ledcwrite ;  ( backlight brightness 0 - 255 )
+: en 18 pin ; ( enable ) 
+: rw 12 pin ; ( unused - rw on lcd is hardwired to ground )
+: rs 13 pin ; ( register select )
+: d7 22 pin ; 
+: d0 27 pin ;
+: d1 26 pin ;
+: d2 25 pin ;
+: d3 33 pin ;
+: d4 32 pin ;
+: d5 19 pin ;
+: d6 21 pin ;
+
+: out		( sets bits on gpio as required )
+  dup 128 and 0 > d7
+  dup 64 and 0 > d6
+  dup 32 and 0 > d5
+  dup 16 and 0 > d4
+  dup 8 and 0 > d3
+  dup 4 and 0 > d2
+  dup 2 and 0 > d1
+  1 and 0 > d0
+;
+
+: delay 1 ms ;
+
+: writed 1 rs delay out delay 0 en delay 1 en delay 0 en ;	( writes data to lcd )
+: writec 0 rs delay out delay 0 en delay 1 en delay 0 en ;	( writes instruction to lcd )
+
+: lcdinit initpins 0 12 06 01 08 56 48 48 48 begin dup writec 0 = until 0 rw ; ( initialization codes for lcd )
+
+: lcdclr 01 writec ; ( clear lcd display )
+
+: lcdhome 02 writec ; ( homes cursor for lcd )
+
+: lcdpos 64 * + 128 + writec ; ( writes cursor position to lcd -  x y lcdpos )
+
+: lcddcb 8 or writec ;			( Display / Cursor / Blink control )
+: lcdcds 16 or writec ;			( Cursor / Display / Shift control )
+
+: lcd. over + swap do i c@ writed loop ; ( LCDtype definition - with thanks Chris Curl)
+
+
+: demo
+lcdinit 				( initialize lcd )
+255 lcdbl 				( set Backlight to max brightness )
+5 0 lcdpos s" Hello " lcd. 		( display Hello at 5 column of first line )
+1 1 lcdpos s" You sexy Beast "  lcd. 	( display on 2nd line )
+3000 ms
+lcdclr					( clear lcd )
+s" PWM of Backlight " lcd.
+6 1 lcdpos s" lcdbl " lcd.
+50 0 do i lcdbl 50 ms loop 		( Turn up lcd backlight brightness )
+50 0 do i 50 swap - lcdbl 40 ms loop	( Turn down brightness )
+
+3000 ms
+lcdclr
+255 lcdbl
+s" o shift screen " lcd.
+0 1 lcdpos
+s" lcdcds " lcd.
+16 0 do 12 lcdcds 300 ms loop 		( shift screen right )
+16 0 do 8 lcdcds 300 ms loop		( shift screen left )
+3000 ms
+ 
+lcdclr
+5 0 lcdpos s" Bye bye " lcd.
+5 lcdbl 
+; 
+
+
+                                                   

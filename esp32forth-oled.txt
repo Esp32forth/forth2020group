@@ -1,0 +1,12 @@
+the esp32forth  oled  
+is version 7.0 of ESP32forth complete 
+with OLED support included
+all 1 file download from here
+https://github.com/PeterForth/espforth/tree/ESP32forth7/ESP32forth-7-oled-5-5
+
+It works well , but still need to fix the vocabulary of the oled
+it has graphics primitives of points lines  rectangles triangles, invert
+screen , etc..
+
+(work in progress  will adapt to version  7.03  and add some more features)
+ 

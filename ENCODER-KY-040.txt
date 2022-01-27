@@ -1,0 +1,32 @@
+\ tested with  Encoder KY-040  it works ok
+\ needs cap 0.1 filter on each input +R 220Ohms
+\ by PeterForth July2021 with Christian Hinse
+
+interrupts
+
+15 input pinmode      \   set GPIO15 as an input
+4 input  pinmode      \   set GPIO4  as an input
+ 
+4 gpio_pulldown_en  
+15 gpio_pulldown_en
+2drop
+
+timers
+ 
+0 value var   0 value oldA   0 value pinA  0 value pinB
+ 
+: readvar  ( --) 
+             4 digitalread  to pinB   15 digitalRead DUP to pinA 
+             if                \  pin A  high 
+               oldA if         \  no change  
+		    else       \  ****  rising edge 
+	            pinB if  1 +to var else  -1 +to var then  
+		    then
+             then               \  pin A  low 
+pinA to oldA                    \  save state
+RERUN	 ;					
+ 
+' readvar  10000 0 interval   \ and run that every 1/100 seconds
+                              \ experiment with other values...   
+
+:  v.     cr var . ;          \ helping word to watch counter and debug
