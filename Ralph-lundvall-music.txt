@@ -1,0 +1,65 @@
+Latest blocks 2 12 2022
+The word NOTE now replaces TONEX
+
+editor
+0 list
+0 r : HD   24 /MOD . ." days " . ." hours " ; 
+1 r : MLSB   DUP 255 AND . 256 / . ; 
+2 r : mysite   z" AllYourSignalAreBelongToUs" ; 
+3 r 4 constant SPKR 1 constant CHAN 
+4 r ledc 1000 ms SPKR CHAN ledcattachpin 
+5 r : NOTE ( hz ms -- ) chan rot tone ms chan 0 tone ; 
+6 r 3000 150 NOTE
+7 r : *RWLcode*   ."   rwl7532 esp32FORTH 211223" ; 
+8 r CR *RWLcode* CR
+9 r : clean   depth 0 do drop loop ;
+10 r : LOADBPM   1 3 THRU ; 
+11 r : LOADNOTES   10 14 THRU ; 
+12 r variable ~mpm 200 ms 2000000 ~mpm !
+13 r variable ~mscale 200 ms 240000000 ~mscale !
+14 r : BPM   ~mscale @ SWAP / ~mpm ! ;
+15 r : BPM?   ~mscale @ ~mpm @ / . ;
+
+update
+flush
+
+
+editor
+1 list
+0 r ( sound library )
+1 r : BIP   3000 50 NOTE ;
+2 r : BEEP   3000 150 NOTE ;
+3 r : BEEPS   0 DO BEEP 50 ms LOOP ;
+4 r : 3RD   ( 1n 2n 3n -- 1n 2n 3n 1n ) >R OVER R> SWAP ;
+5 r : WARBLE    3 0 DO 3RD OVER NOTE 2DUP NOTE LOOP DROP 2DROP ;
+6 r BEEP
+7 r : SIREN   400 550 400 WARBLE ;
+8 r : ~R   500 600 40 WARBLE ;
+9 r : RING    ~R 200 ms ~R ;
+10 r : RINGS   ( rings -- ) 0 DO RING 1000 ms LOOP ;
+11 r : ZAP   3000 100 DO I 15 I 300 / - NOTE 200 +LOOP ;
+12 r : ZAPS ( cnt -- )   0 DO ZAP 50 ms LOOP ;
+13 r : SAUCER   10 0 DO 600 50 NOTE 580 50 NOTE LOOP ;
+14 r : bcd2bin  ( n -- ) DUP 4 RSHIFT 6 * - ;
+15 r : bin2bcd  ( n -- ) DUP 10 / 6 * + ;
+
+update
+flush
+
+editor
+2 list
+0 r : .1   ~mpm @ 1000 / NOTE ;
+1 r : .2   ~mpm @ 2000 / NOTE ;
+2 r : .4   ~mpm @ 4000 / NOTE ;
+3 r : .8   ~mpm @ 8000 / NOTE ;
+4 r : .16   ~mpm @ 16000 / NOTE ;
+5 r : .32   ~mpm @ 32000 / NOTE ;
+6 r : .64   ~mpm @ 64000 / NOTE ;
+7 r : .4.   ~mpm @ 2667 / NOTE ;
+8 r : .2.   ~mpm @ 1333 / NOTE ;
+9 r : sl   12 NOTE ;
+10 r : .8.   ~mpm @ 5333 / NOTE ; 
+11 r : .28   ~mpm @ 1600 / NOTE ; 
+12 r : .3   ~mpm @ 3000 / NOTE ;
+13 r : .6   ~mpm @ 6000 / NOTE ;
+
