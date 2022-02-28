@@ -1,0 +1,55 @@
+\ 24c32 I2C 32Kb EEPROM chip single byte write and read.
+\ This chip is often found on same small board with DS1307 RTC! 🙂
+\ $50 is the I2C number/address used by my 24c32 32Kb chip 
+\ OBS: Some chips, e.g. Atmel, use adr + 1 (51) for Read, and 50 for Write!
+\ My chip use same addr. for both read and write!
+\ Max addr. for a single byte write/read: 7FFF !
+\ Jan Langevaad  28-February-2022
+
+base @
+hex
+WIRE
+
+: 24c32writebyte		\ DATAbyte ADDR16bits(0...7FFF)  --- 
+
+	 50 	Wire.beginTransmission	\ start $50 write drop	 
+	 dup 
+	 100 /		\ get MSB 
+	 TimeBuff 9 +	c!
+	 TimeBuff 9 +	1 Wire.write drop \ adr MSB in EEPROM 
+
+	 ff and		\ get LSB 
+	 TimeBuff 9 +	c!
+	 TimeBuff 9 +	1 Wire.write drop \ adr MSB in EEPROM 
+ 
+	 TimeBuff 9 +	c!
+	 TimeBuff 9 +	1 Wire.write drop \ DataByte to EEPROM 
+
+	1 	Wire.endTransmission  drop \ 1=StopOption --- Return   Drop(0= ok 1..4 see doc!)
+; 
+
+: 24c32readbyte			\ ADDR16bits(0...7FFF) --- databyte 
+
+	50 	Wire.beginTransmission
+	dup 
+	100 /			\ get MSB 
+	TimeBuff 9 + c!
+	TimeBuff 9 +	
+	1 	Wire.write drop 	\ adr MSB in EEPROM 
+
+	ff and			\ get LSB 
+	TimeBuff 9 + c!
+	TimeBuff 9 +	
+	1 	Wire.write drop \ adr MSB in EEPROM  
+	0 Wire.endTransmission  drop \ --- 0 = cont. option, drop return 0= ok 1..4 see d
+
+	50 1 -1  	Wire.requestFrom drop
+	Wire.Available drop	 	\ --- # 		bytes to read
+	Wire.Read		\ --- RamDataByte
+; 
+
+FORTH
+BASE !
+
+\ EOF
+ 

@@ -1,55 +1,142 @@
-\ 24c32 I2C 32Kb EEPROM chip single byte write and read.
-\ This chip is often found on same small board with DS1307 RTC! 🙂
-\ $50 is the I2C number/address used by my 24c32 32Kb chip 
-\ OBS: Some chips, e.g. Atmel, use adr + 1 (51) for Read, and 50 for Write!
-\ My chip use same addr. for both read and write!
-\ Max addr. for a single byte write/read: 7FFF !
-\ Jan Langevaad  28-March-2022
+\ Language: ESP32Forth
+\ Simplified use of the DS1307 Real Time Clock I2C chip.
+\ Read the documentation for DS1307 for more details:
+\ https://datasheets.maximintegrated.com/en/ds/DS1307.pdf
+\ Author: Jan Langevad - february 2022 - free software.
+\ Not claiming that this is optimal, but an introduction to RTC an I2C
+\ Good ideas are welcome 🙂
+
 
 base @
-hex
-WIRE
+decimal
 
-: 24c32writebyte		\ DATAbyte ADDR16bits(0...7FFF)  --- 
+0 value TimeBuff 
 
-	 50 	Wire.beginTransmission	\ start $50 write drop	 
-	 dup 
-	 100 /		\ get MSB 
-	 TimeBuff 9 +	c!
-	 TimeBuff 9 +	1 Wire.write drop \ adr MSB in EEPROM 
+INTERNALS \ <**********
+: GetBuffMemory 
+ 	10 malloc ( --- 0/Addr    allocate byte buffer for Time RTC data RAM )
+	is TimeBuff
+;
+  GetBuffMemory
 
-	 ff and		\ get LSB 
-	 TimeBuff 9 +	c!
-	 TimeBuff 9 +	1 Wire.write drop \ adr MSB in EEPROM 
+FORTH
+
+hex \ <---------- OBS - Practical with BCD numbers too
+
+\ 15 constant 	GPIO21    ( SDA )  \ = 21 
+\ 16 CONSTANT 	GPIO22     ( SCL )  
+\ : INIT-PINS  	GPIO21 OUTPUT PINMODE LOW  GPIO21 PIN  
+\ 		GPIO22 OUTPUT PINMODE LOW  GPIO22 PIN ; 
+\ INIT-PINS 
+
+variable second
+variable minute
+variable hour
+variable dayofweek
+variable dayofmonth
+variable month
+variable year
+
+variable nullbyte
+
+variable WireOK?  \ save wire prep stack result here
+0 WireOK? !
+
+( OBS: BCD - Binary Coded Decimal! TESTDATA: )
+22 year !
+02 month !
+28 dayofmonth !
+02 dayofweek ! 	\ d#    1..7     Sunday=1
+12 hour !		\ Default i RTC is 24 Hour format
+34 minute !
+00 second !
+
+0 nullbyte !
+
+: setuptimeBCD  \ yy mm dd d# hh mm ss ---		\ to entered with HEX BASE
+ second  C!
+ minute  C!
+ hour C!
+ dayofweek C! 	\  1...7   1 = sunday
+ dayofmonth C!
+ month C!
+ year C!
+
+0		TimeBuff 	     c!
+0		TimeBuff 1+  c!
+ second c@	TimeBuff 2 + c!
+ minute  c@	TimeBuff 3 + c!
+ hour c@	 	TimeBuff 4 + c!
+ dayofweek c@  	TimeBuff 5 + c! 	\  1...7   1 = sunday
+ dayofmonth  c@	TimeBuff 6 + c! 
+ month 	c@ 	TimeBuff 7 + c!
+ year c@ 	 	TimeBuff 8 + c!
+;
  
-	 TimeBuff 9 +	c!
-	 TimeBuff 9 +	1 Wire.write drop \ DataByte to EEPROM 
+22 02 28 2 12 34 00 setuptimeBCD \ test    yy mm dd d# hh mm ss ---
 
-	1 	Wire.endTransmission  drop \ 1=StopOption --- Return   Drop(0= ok 1..4 see doc!)
-; 
+WIRE		\ change vocabulary
 
-: 24c32readbyte			\ ADDR16bits(0...7FFF) --- databyte 
+: Wire.Prep  	 15 16  Wire.begin   WireOK? ! ;  \ initialize IC2 pins SDA SCL --- 
+  Wire.Prep   	\ 15 16 hex =  21 22 decimal GPIO pin #
 
-	50 	Wire.beginTransmission
-	dup 
-	100 /			\ get MSB 
-	TimeBuff 9 + c!
-	TimeBuff 9 +	
-	1 	Wire.write drop 	\ adr MSB in EEPROM 
+cr ." WireOK?=1 is OK:  " WireOK? @ . cr
 
-	ff and			\ get LSB 
-	TimeBuff 9 + c!
-	TimeBuff 9 +	
-	1 	Wire.write drop \ adr MSB in EEPROM  
+: settime    \ $68 is the I2C address used  by DS1307 RTC chip
+
+ 	68 	Wire.beginTransmission
+	\ unfortunately Wire.write in our Forth requires adresses and not values on stack
+	\ Therefore use of TimeBuff
+
+ 	TimeBuff 		1 Wire.write drop  \ send register address
+	TimeBuff 		1 Wire.write drop  \ reset seconds!! and start RTC
+	TimeBuff 3 +  	1 Wire.write drop \ minute
+	TimeBuff 4 +  	1 Wire.write drop \ hour
+	TimeBuff 5 +  	1 Wire.write drop \ dayofweek
+	TimeBuff 6 +  	1 Wire.write drop \ dayofmonth
+	TimeBuff 7 +  	1 Wire.write drop \ month
+	TimeBuff 8 +  	1 Wire.write drop \ year
+ 	
+ 	1 	Wire.endTransmission  drop \ --- 1 = stop option, drop return 0= ok 1..4 see doc!
+;
+
+: mmssAdjustTime	 	\ mm ss ---	Just setting Minute and Second in RTC:
+	TimeBuff 2 + c!
+	TimeBuff 3 + c!
+
+ 	68 	Wire.beginTransmission
+ 	TimeBuff 		1 Wire.write drop  \ send register address
+	TimeBuff 2 +	1 Wire.write drop  \ reset seconds!! and start RTC
+	TimeBuff 3 +  	1 Wire.write drop \ minute
+ 	1 	Wire.endTransmission  drop \ --- 1 = stop option, drop return 0= ok 1..4 see doc!
+;
+
+: gettime   (  --- SS MM HH D# DD MM YY )
+
+ 	68 	Wire.beginTransmission
+ 	nullbyte 		1 Wire.write drop  \ send register address
 	0 Wire.endTransmission  drop \ --- 0 = cont. option, drop return 0= ok 1..4 see d
 
-	50 1 -1  	Wire.requestFrom drop
-	Wire.Available drop	 	\ --- # 		bytes to read
-	Wire.Read		\ --- RamDataByte
-; 
+	68 7 -1  	Wire.requestFrom drop
+	Wire.Available drop	 \ --- # bytes to read
+	Wire.Read	\ second !
+	Wire.Read	\ minute !
+	Wire.Read	\ hour !
+	Wire.Read	\ dayofweek !
+	Wire.Read	\ dayofmonth !
+	Wire.Read	\ month !
+	Wire.Read	\ year !
+   	\ Apparently ot needed(!/?):	
+	\ 1 Wire.endTransmission  drop \ --- 1 = stop option, drop return 0= ok 1..4 see d
+;  
+
+: gettime.  gettime   . . . . . . .  ;	\ Print time on terminal
+
+: gettime! gettime		\ Store current time in memory
+  	year C! month C! dayofmonth C! dayofweek C! hour C! minute C! second C! 
+;
 
 FORTH
 BASE !
 
 \ EOF
- 
