@@ -1,0 +1,92 @@
+
+\ Language: ESP32Forth
+\ Simplified use of the 16 bit I/O Expander w. I2C interface: MCP23017
+\ Read the documentation for MCP23017 for more details, here:
+\ https://ww1.microchip.com/downloads/en/devicedoc/20001952c.pdf
+\ This chip can also deal with interrupts when input bit(s) change.
+\ This feature is not included in this simplified program.
+\ PortA is here used as Output, and PortB as Input.
+\ Arduino inspiration source: https://tronixstuff.com/2011/08/26/arduino-mcp23017-tutorial/
+\ Author: Jan Langevad - March 2022 - free software.
+\ Not claiming that this icode s optimal, but only an introduction to this expander and I2C in ESP32Forth.
+\ Good ideas are welcome 🙂
+
+base @
+
+FORTH
+
+hex \ <---------- OBS
+
+\ Unfortunately ESP32Forth Wire.write words requires adresses, and not values on stack so:
+variable 	Var00		00 	Var00 !
+variable 	Var01		01 	Var01 !
+variable 	Var20		20 	Var20 !
+variable 	Var12		12 	Var12 !
+variable	Var13		13	Var13 !
+variable 	VarFF		FF	VarFF !
+variable 	Varxx		00	Varxx !
+variable   VarPortB		00	VarPortB !	\ read port B result saved here
+
+variable WireOK?  		\ save wire prep result here
+0 WireOK? !
+
+variable 	WireResultA
+0 	WireResultA !	\ "Return code" saved here
+variable 	WireResultB
+0 	WireResultB !	\ "Return code" saved here
+ 
+WIRE			\ change vocabulary
+
+: Wire.Prep  	  15 16  Wire.begin   WireOK? ! ;  \ initialize IC2 pins SDA SCL --- 
+  Wire.Prep   	\ 15 16 hex =  21 22 decimal GPIO pin # <*********************
+cr ." WireOK?=1 is OK:  " WireOK? @ . cr
+
+: ExpanderSetup 		(  ---  )	\ Set PortA t output and PortB to Input:
+
+	\ $20 is the I2C WRITE address used in this chip/setup (Microchip doc. says 40!/???)
+
+ 	20 	Wire.beginTransmission 	\ Start
+	\ unfortunately Wire.write in our Forth requires adresses, and not values on stack
+	Var00  	1 Wire.write drop		\  00=IODIRA register. Var01=IODIRB register
+ 	Var00	1 Wire.write drop  		\  00 = all 8 pins are output!	(Default @ Reset is INPUT!)
+ 	1 	Wire.endTransmission  	\ --- 1 = stop option, drop return 0= ok 1..4 see doc!
+	WireResultA !		     	\ "Return code" saved here
+
+ 	20 	Wire.beginTransmission 	\ Start
+	\ unfortunately Wire.write in our Forth requires adresses, and not values on stack
+	Var01  	1 Wire.write drop		\  00=IODIRA register. Var01=IODIRB register
+ 	VarFF	1 Wire.write drop  		\  FF = all 8 pins are Input!	(Default @ Reset is INPUT!)
+ 	1 	Wire.endTransmission  	\ --- 1 = stop option, drop return 0= ok 1..4 see doc!
+	WireResultB !		     	\ "Return code" saved here
+;
+
+: ExpanderSetPortA 		(  byte ---  ) \ write to port A
+	
+	VarXX !	\ store byte in a value 😊 at an address )
+
+	\ $20 is the I2C WRITE address used in this chip/setup (Microchip doc. says 40!/???)
+
+ 	20 	Wire.beginTransmission 	\ Start
+	Var12  	1 Wire.write drop  \ address port A. (Address port B=Var13)
+ 	Varxx	1 Wire.write drop  \  Write input byte/Varxx variable to PortA
+ 	
+ 	1 	Wire.endTransmission  \ --- 1 = stop option, drop return 0= ok 1..4 see doc!
+	WireResultA !		     \ "Return code" saved here
+;
+
+: ExpanderGetPortB 		(  ---  byte ) \ read from port B
+	
+	\ $20 is the I2C WRITE address used in this chip/setup (Microchip doc. says 40!/???)
+
+ 	20 	Wire.beginTransmission 	\ Start
+	Var13  	1 Wire.write drop  		\ address port port B 
+	0 	Wire.endTransmission  drop 	\ --- 0 = cont. option, drop return 0= ok 1..4 see d	
+
+	20 1 -1 Wire.requestFrom drop	\ request one byte of data from MCP20317
+	Wire.Available drop	 		\ --- # bytes to read DROPPED
+	Wire.read 			\ --- byte    gets PortB data byte
+	dup VarPortB !			\ --- byte    save a copy in RAM
+;
+
+FORTH
+BASE !
