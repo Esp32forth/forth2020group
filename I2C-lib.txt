@@ -1,44 +1,44 @@
-( i2c high level forth library  PeterForth 2021  ) 
+ ( i2c high level forth library  PeterForth 2021  ) 
 ( see address is set for  $4E  by default ) 
-DECIMAL
-:  ... 200 ms ;
-...
+FORTH DECIMAL
+ 
+     
 15 constant GPIO15    ( SDA ) 
-...    
+         
 2 CONSTANT GPIO2      ( SCL ) 
-...                
+                     
 : INIT-PINS  GPIO15 OUTPUT PINMODE low GPIO15 PIN  GPIO2 OUTPUT PINMODE  LOW  GPIO2 PIN ; 
-...           
+                
 ( send a value to both pins ) 
-...           
+                
 : ALL ( n--)  DUP  GPIO15 PIN GPIO2 PIN   ;
-...      
+           
 1 VALUE CLKDELAY  
-...   
+        
 : CLK  ( --)  HIGH  GPIO2 PIN CLKDELAY MS LOW GPIO2 PIN CLKDELAY MS ;
-...
+     
 : >I2  GPIO15 PIN CLK ;
-...
+     
 : START-I2C    1 GPIO15 PIN 1 MS  0 >I2   ;   
-...
+     
 : STOP-I2C     LOW GPIO15 PIN 1 MS HIGH GPIO2 PIN ; 
-...
+     
 ( default set to 0x4E  $4E  == 78 decimal ==  0100 1110  address word ) 
-...
+     
 : SENDADDR    START-I2C      0 >I2  1 >I2   0 >I2   0 >I2      1 >I2  1 >I2  1 >I2  0 >I2  CLK     ;
-...
+     
 : R1  SENDADDR  START-I2C    1 >I2  0 >I2   1 >I2   0 >I2      1 >I2  1 >I2  1 >I2  1 >I2  ;
-...
+     
 : INIT-I2C    INIT-PINS  0 ALL r1 10 MS 1 ALL ;   INIT-I2C
-...
+     
 0 value byte
-...
+     
 : i2c1 ( n--)  to byte sendaddr 7 for byte 1 and >i2  byte 2/ to byte  next  ;
-...
+     
 : vv  byte and >i2 ;
-...
+     
 : i2c-invert ( n--)  to byte sendaddr   1 vv 2 vv 4 vv 8 vv 16 vv 32 vv 64 vv 128 vv   0 >I2  STOP-I2C ;
-...
+     
 : i2c       ( n-- )  to byte sendaddr   128 vv  64 vv 32 vv  16 vv 8 vv 4 vv 2 vv 1 vv  0 >I2  STOP-I2C ;
-...
+     
 : i2test    255 0 do i i2c   loop ;
