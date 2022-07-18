@@ -1,31 +1,27 @@
-Latest blocks 2 12 2022
-The word NOTE now replaces TONEX
-
-editor
-0 list
-0 r : HD   24 /MOD . ." days " . ." hours " ; 
-1 r : MLSB   DUP 255 AND . 256 / . ; 
-2 r : mysite   z" AllYourSignalAreBelongToUs" ; 
+ editor 0 list
+ 
+0 r ( : mystart   0 2 thru 10 15 thru ; )  
+1 r ( startup: mystart ) 
+2 r ( pin D4 to speaker ) 
 3 r 4 constant SPKR 1 constant CHAN 
 4 r ledc 1000 ms SPKR CHAN ledcattachpin 
 5 r : NOTE ( hz ms -- ) chan rot tone ms chan 0 tone ; 
 6 r 3000 150 NOTE
-7 r : *RWLcode*   ."   rwl7532 esp32FORTH 211223" ; 
-8 r CR *RWLcode* CR
-9 r : clean   depth 0 do drop loop ;
-10 r : LOADBPM   1 3 THRU ; 
+7 r ( blank lines for your utilities etc ) 
+8 r 
+9 r  
+10 r : LOADBPM   1 2 THRU ; 
 11 r : LOADNOTES   10 14 THRU ; 
 12 r variable ~mpm 200 ms 2000000 ~mpm !
 13 r variable ~mscale 200 ms 240000000 ~mscale !
 14 r : BPM   ~mscale @ SWAP / ~mpm ! ;
 15 r : BPM?   ~mscale @ ~mpm @ / . ;
-
-update
+ 
 flush
-
-
-editor
-1 list
+update 
+ 
+editor 1 list
+ 
 0 r ( sound library )
 1 r : BIP   3000 50 NOTE ;
 2 r : BEEP   3000 150 NOTE ;
@@ -40,14 +36,13 @@ editor
 11 r : ZAP   3000 100 DO I 15 I 300 / - NOTE 200 +LOOP ;
 12 r : ZAPS ( cnt -- )   0 DO ZAP 50 ms LOOP ;
 13 r : SAUCER   10 0 DO 600 50 NOTE 580 50 NOTE LOOP ;
-14 r : bcd2bin  ( n -- ) DUP 4 RSHIFT 6 * - ;
-15 r : bin2bcd  ( n -- ) DUP 10 / 6 * + ;
-
-update
+14 r 
+15 r 
+ 
 flush
-
-editor
-2 list
+ 
+editor 2 list
+ 
 0 r : .1   ~mpm @ 1000 / NOTE ;
 1 r : .2   ~mpm @ 2000 / NOTE ;
 2 r : .4   ~mpm @ 4000 / NOTE ;
@@ -62,4 +57,113 @@ editor
 11 r : .28   ~mpm @ 1600 / NOTE ; 
 12 r : .3   ~mpm @ 3000 / NOTE ;
 13 r : .6   ~mpm @ 6000 / NOTE ;
-
+ 
+flush
+ 
+ 
+editor 10 list
+0  R 16 CONSTANT C0 17 CONSTANT C0# 18 CONSTANT D0
+1  R 19 CONSTANT D0# 21 CONSTANT E0 22 CONSTANT F0
+2  R 23 CONSTANT F0# 24 CONSTANT G0 26 CONSTANT G0#
+3  R 28 CONSTANT A0 29 CONSTANT A0# 31 CONSTANT B0
+4  R 33 CONSTANT C1 35 CONSTANT C1# 37 CONSTANT D1
+5  R 39 CONSTANT D1# 41 CONSTANT E1 44 CONSTANT F1
+6  R 46 CONSTANT F1# 49 CONSTANT G1 52 CONSTANT G1#
+7  R 55 CONSTANT A1 58 CONSTANT A1# 62 CONSTANT B1
+8  R 65 CONSTANT C2 69 CONSTANT C2# 73 CONSTANT D2
+9  R 78 CONSTANT D2# 82 CONSTANT E2 87 CONSTANT F2
+10  R 92 CONSTANT F2# 98 CONSTANT G2 104 CONSTANT G2#
+11  R 110 CONSTANT A2 117 CONSTANT A2# 123 CONSTANT B2
+12  R 131 CONSTANT C3 139 CONSTANT C3# 147 CONSTANT D3
+13  R 156 CONSTANT D3# 165 CONSTANT E3 175 CONSTANT F3
+14  R 185 CONSTANT F3# 196 CONSTANT G3 208 CONSTANT G3#
+15  R 220 CONSTANT A3 233 CONSTANT A3# 247 CONSTANT B3
+ 
+flush
+ 
+editor 11 list
+0  R 262 CONSTANT C4 277 CONSTANT C4# 294 CONSTANT D4 
+1  R 311 CONSTANT D4# 330 CONSTANT E4 349 CONSTANT F4 
+2  R 370 CONSTANT F4# 392 CONSTANT G4 415 CONSTANT G4# 
+3  R 440 CONSTANT A4 466 CONSTANT A4# 494 CONSTANT B4 
+4  R 523 CONSTANT C5 554 CONSTANT C5# 587 CONSTANT D5 
+5  R 622 CONSTANT D5# 659 CONSTANT E5 698 CONSTANT F5 
+6  R 740 CONSTANT F5# 784 CONSTANT G5 831 CONSTANT G5# 
+7  R 880 CONSTANT A5 932 CONSTANT A5# 988 CONSTANT B5 
+8  R 1047 CONSTANT C6 1109 CONSTANT C6# 1175 CONSTANT D6 
+9  R 1245 CONSTANT D6# 1319 CONSTANT E6 1397 CONSTANT F6 
+10  R 1480 CONSTANT F6# 1568 CONSTANT G6 1661 CONSTANT G6# 
+11  R 1760 CONSTANT A6 1865 CONSTANT A6# 1976 CONSTANT B6 
+12  R 2093 CONSTANT C7 2217 CONSTANT C7# 2349 CONSTANT D7 
+13  R 2489 CONSTANT D7# 2637 CONSTANT E7 2794 CONSTANT F7 
+14  R 2960 CONSTANT F7# 3136 CONSTANT G7 3322 CONSTANT G7# 
+15  R 3520 CONSTANT A7 3729 CONSTANT A7# 3951 CONSTANT B7 
+ 
+flush
+ 
+editor 12 list
+0 R 4186 CONSTANT C8 4435 CONSTANT C8# 0 CONSTANT rst
+1 R 
+2 R 
+3 R 
+4 R 
+5 R 
+ 
+ 
+flush
+ 
+editor 13 list
+ 
+0 r : JINGLE   ( BLOCK 13 )
+1 r  E5  .8 E5  .8 E5  .4
+2 r  E5  .8 E5  .8 E5  .4
+3 r  E5  .8 G5  .8 C5  .8 D5  .8 E5  .2
+4 r  F5  .8 F5  .8 F5  .8 F5  .8
+5 r  F5  .8 E5  .8 E5  .8 E5  .16 E5  .16
+6 r  E5  .8 D5  .8 D5  .8 E5  .8 D5  .4 G5  .4
+7 r  E5  .8 E5  .8 E5  .4 E5  .8 E5  .8 E5  .4
+8 r  E5  .8 G5  .8 C5  .8 D5  .8 E5  .2
+9 r  F5  .8 F5  .8 F5  .8 F5  .8
+10 r  F5  .8 E5  .8 E5  .8 E5  .16 E5  .16
+11 r  G5  .8 G5  .8 F5  .8 D5  .8 C5  .2 ;
+ 
+flush
+ 
+editor 14 list
+ 
+0 r : RUDOLPH   220 BPM G4 .8 A4 .8 G4 .4 E4 .4 C5 .4 A4 .4 G4 .2.
+1 r  G4 .8 A4 .8 G4 .8 A4 .8 G4 .4 C5 .4 B4 .1  
+2 r F4 .8 G4 .8 F4 .4 D4 .4 B4 .4 A4 .4 G4 .2.
+3 r G4 .8 A4 .8 G4 .8 A4 .8 G4 .4 A4 .4 E4 .1  
+4 r G4 .8 A4 .8 G4 .4 E4 .4 C5 .4 A4 .4 G4 .2.
+5 r G4 .8 A4 .8 G4 .8 A4 .8 G4 .4 C5 .4 B4 .1  
+6 r F4 .8 G4 .8 F4 .4 D4 .4 B4 .4 A4 .4 G4 .2. 
+7 r G4 .8 A4 .8 G4 .8 A4 .8 G4 .4 D5 .4 C5 .2.  
+8 r A4 .4 A4 .4 C5 .4 A4 .4 G4 .4 E4 .4 G4 .2 F4 .4 
+9 r A4 .4 G4 .4 F4 .4 E4 .1 D4 .4 E4 .4 G4 .4 
+10 r A4 .4 B4 .4 B4 .4 B4 .2 C5 .4 C5 .4 B4 .4 A4 .4 
+11 r G4 .4 F4 .8 D4 .28 G4 .8 A4 .8 G4 .4 E4 .4 
+12 r C5 .4 A4 .4 G4 .2. G4 .8 A4 .8 G4 .8 A4 .8 G4 .4 
+13 r C5 .4 B4 .1 F4 .8 G4 .8 F4 .4 D4 .4 B4 .4 
+14 r A4 .4 G4 .2. G4 .8 A4 .8 G4 .8 A4 .8 G4 .4 D5 .4 C5 .2. ;
+ 
+flush
+ 
+editor 15 list
+ 
+0 r : CARTOON   
+1 r   C7  .8 G6  .16 G6  .16 A6  .8 G6  .8 rst .8
+2 
+3 r   C7  .8 G6  .16 G6  .16 A6  .8 G6  .8 rst .8
+4 r   C7  .8 G6  .16 G6  .16 A6  .8 G6  .8 rst .8
+5 r   B6  .8 C7  .4 ;
+ 
+8 r : CARTOON2   
+9 r   C6  .8 G5  .16 G5  .16 A5  .8 G5  .8 rst .8
+10 r   C6  .8 G5  .16 G5  .16 A5  .8 G5  .8 rst .8
+11 r   C6  .8 G5  .16 G5  .16 A5  .8 G5  .8 rst .8
+12 r   B5  .8 C6  .4 ;
+ 
+flush
+ 
+ 
